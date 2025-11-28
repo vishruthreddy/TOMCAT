@@ -1,0 +1,63 @@
+# Example Inventory Configuration
+# Copy this file to hosts and uncomment/modify as needed
+
+# ============================================
+# OPTION 1: Local Deployment (Recommended for testing)
+# Deploy Tomcat on the same server where you run Ansible
+# ============================================
+[tomcat_servers]
+localhost ansible_connection=local
+
+[tomcat_servers:vars]
+tomcat_version=9.0.85
+tomcat_service_account=tomcat
+tomcat_home=/opt/tomcat
+tomcat_port=8080
+tomcat_shutdown_port=8005
+tomcat_ajp_port=8009
+
+# ============================================
+# OPTION 2: Remote Deployment
+# Deploy Tomcat on a remote server
+# ============================================
+# [tomcat_servers]
+# remote-server ansible_host=192.168.1.100 ansible_user=admin
+# 
+# [tomcat_servers:vars]
+# tomcat_version=9.0.85
+# tomcat_service_account=tomcat
+# tomcat_home=/opt/tomcat
+# tomcat_port=8080
+# tomcat_shutdown_port=8005
+# tomcat_ajp_port=8009
+
+# ============================================
+# OPTION 3: Multiple Servers
+# Deploy Tomcat on multiple servers
+# ============================================
+# [tomcat_servers]
+# server1 ansible_host=192.168.1.10 ansible_user=admin
+# server2 ansible_host=192.168.1.11 ansible_user=admin
+# server3 ansible_host=192.168.1.12 ansible_user=admin
+# 
+# [tomcat_servers:vars]
+# tomcat_version=9.0.85
+# tomcat_service_account=tomcat
+# tomcat_home=/opt/tomcat
+# tomcat_port=8080
+# tomcat_shutdown_port=8005
+# tomcat_ajp_port=8009
+
+# OS-specific groups (optional)
+[redhat]
+# RHEL/CentOS servers
+# Add your RHEL/CentOS servers here
+
+[debian]
+# Ubuntu/Debian servers
+# Add your Ubuntu/Debian servers here
+
+[windows]
+# Windows servers (if applicable)
+# Add your Windows servers here
+

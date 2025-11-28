@@ -1,8 +1,6 @@
 [tomcat_servers]
-# Example inventory entries
-# Replace with your actual server details
-# tomcat-server-1 ansible_host=192.168.1.10 ansible_user=admin
-# tomcat-server-2 ansible_host=192.168.1.11 ansible_user=admin
+matilda-svc-ubuntu ansible_host=172.24.8.218 ansible_user=root ansible_password=UKk~yYKqsZtv=g+x
+matilda-svc-rhel ansible_host=172.24.7.81 ansible_user=root ansible_password=UKk~yYKqsZtv=g+x
 
 [tomcat_servers:vars]
 # Common variables for all tomcat servers
@@ -15,11 +13,11 @@ tomcat_ajp_port=8009
 
 [redhat]
 # RHEL/CentOS servers
-# Add your RHEL/CentOS servers here
+matilda-svc-rhel ansible_host=172.24.7.81 ansible_user=root ansible_password=UKk~yYKqsZtv=g+x
 
 [debian]
 # Ubuntu/Debian servers
-# Add your Ubuntu/Debian servers here
+matilda-svc-ubuntu ansible_host=172.24.8.218 ansible_user=root ansible_password=UKk~yYKqsZtv=g+x
 
 [windows]
 # Windows servers (if applicable)

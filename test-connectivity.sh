@@ -19,12 +19,37 @@ if [ ! -f "inventory/hosts" ]; then
 fi
 
 echo -e "${YELLOW}1. Testing SSH connectivity...${NC}"
+# Check if inventory has any hosts configured
+HOST_COUNT=$(ansible-inventory --list 2>/dev/null | grep -c "tomcat_servers" || echo "0")
+if [ "$HOST_COUNT" = "0" ]; then
+    echo -e "${RED}✗ No hosts configured in inventory/hosts${NC}"
+    echo ""
+    echo "   Please configure inventory/hosts with one of these options:"
+    echo ""
+    echo "   Option 1: Local deployment (deploy on this server)"
+    echo "   [tomcat_servers]"
+    echo "   localhost ansible_connection=local"
+    echo ""
+    echo "   Option 2: Remote deployment"
+    echo "   [tomcat_servers]"
+    echo "   target-server ansible_host=IP_ADDRESS ansible_user=USERNAME"
+    echo ""
+    exit 1
+fi
+
 if ansible tomcat_servers -m ping > /dev/null 2>&1; then
     echo -e "${GREEN}✓ SSH connectivity successful${NC}"
 else
-    echo -e "${RED}✗ SSH connectivity failed${NC}"
-    echo "   Run: ansible tomcat_servers -m ping --ask-pass"
-    exit 1
+    echo -e "${YELLOW}⚠ SSH connectivity test failed, trying with local connection...${NC}"
+    # Try with local connection
+    if ansible tomcat_servers -m ping -c local > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ Local connection successful${NC}"
+    else
+        echo -e "${RED}✗ Connectivity failed${NC}"
+        echo "   Try: ansible tomcat_servers -m ping --ask-pass"
+        echo "   Or configure localhost: localhost ansible_connection=local"
+        exit 1
+    fi
 fi
 
 echo ""
