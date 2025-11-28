@@ -1,0 +1,84 @@
+---
+# Service Configuration Role
+# Configures ports, logging, and service management
+
+- name: Create Tomcat configuration directory
+  file:
+    path: "{{ tomcat_home }}/conf"
+    state: directory
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+  when: ansible_os_family != 'Windows'
+
+- name: Configure server.xml with custom ports
+  template:
+    src: server.xml.j2
+    dest: "{{ tomcat_home }}/conf/server.xml"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0644'
+    backup: yes
+  notify: restart tomcat
+  when: ansible_os_family != 'Windows'
+
+- name: Configure logging.properties
+  template:
+    src: logging.properties.j2
+    dest: "{{ tomcat_home }}/conf/logging.properties"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0644'
+    backup: yes
+  notify: restart tomcat
+  when: ansible_os_family != 'Windows'
+
+- name: Configure setenv.sh for JVM options
+  template:
+    src: setenv.sh.j2
+    dest: "{{ tomcat_home }}/bin/setenv.sh"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+    backup: yes
+  notify: restart tomcat
+  when: ansible_os_family != 'Windows'
+
+- name: Create systemd service file (Linux)
+  template:
+    src: tomcat.service.j2
+    dest: "{{ systemd_service_path }}/{{ tomcat_systemd_service }}"
+    mode: '0644'
+    backup: yes
+  notify: 
+    - reload systemd
+    - restart tomcat
+  when: ansible_os_family != 'Windows'
+
+- name: Enable and start Tomcat service
+  systemd:
+    name: "{{ tomcat_systemd_service }}"
+    enabled: "{{ tomcat_service_enabled }}"
+    state: "{{ tomcat_service_state }}"
+    daemon_reload: yes
+  when: ansible_os_family != 'Windows'
+
+- name: Check if Tomcat is running
+  uri:
+    url: "http://localhost:{{ tomcat_port }}"
+    method: GET
+    status_code: [200, 404]
+  register: tomcat_status_check
+  changed_when: false
+  failed_when: false
+  when: ansible_os_family != 'Windows'
+
+- name: Display service status
+  debug:
+    msg:
+      - "Tomcat Service: {{ tomcat_systemd_service }}"
+      - "Status: {{ tomcat_service_state }}"
+      - "Enabled on boot: {{ tomcat_service_enabled }}"
+      - "Port: {{ tomcat_port }}"
+      - "HTTP Status: {{ tomcat_status_check.status | default('Not accessible') }}"
+

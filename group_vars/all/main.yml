@@ -1,0 +1,44 @@
+---
+# Global variables for all hosts
+
+# Tomcat Configuration
+tomcat_version: "9.0.85"
+tomcat_major_version: "9"
+tomcat_download_url: "https://archive.apache.org/dist/tomcat/tomcat-{{ tomcat_major_version }}/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+
+# Service Account Configuration
+tomcat_service_account: "tomcat"
+tomcat_service_group: "tomcat"
+tomcat_home: "/opt/tomcat"
+tomcat_base: "/opt/tomcat"
+tomcat_install_dir: "/opt/apache-tomcat-{{ tomcat_version }}"
+
+# Port Configuration
+tomcat_port: 8080
+tomcat_shutdown_port: 8005
+tomcat_ajp_port: 8009
+tomcat_redirect_port: 8443
+
+# Java Configuration
+java_version: "11"
+java_package_redhat: "java-11-openjdk-devel"
+java_package_debian: "openjdk-11-jdk"
+
+# Application Configuration
+app_name: "sample-app"
+app_context_path: "/sample-app"
+app_war_file: "sample-app.war"
+
+# Logging Configuration
+tomcat_log_dir: "{{ tomcat_home }}/logs"
+tomcat_log_level: "INFO"
+tomcat_access_log_enabled: true
+
+# Health Check Configuration
+health_check_enabled: true
+health_check_path: "/health"
+
+# Service Management
+tomcat_service_enabled: true
+tomcat_service_state: "started"
+

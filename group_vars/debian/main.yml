@@ -1,0 +1,11 @@
+---
+# Variables specific to Ubuntu/Debian systems
+
+os_family: "Debian"
+package_manager: "apt"
+java_package: "{{ java_package_debian }}"
+systemd_service_path: "/etc/systemd/system"
+
+# Debian/Ubuntu specific paths
+tomcat_systemd_service: "tomcat.service"
+

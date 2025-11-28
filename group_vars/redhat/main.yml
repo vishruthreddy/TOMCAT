@@ -1,0 +1,12 @@
+---
+# Variables specific to RHEL/CentOS systems
+
+os_family: "RedHat"
+package_manager: "yum"
+java_package: "{{ java_package_redhat }}"
+tomcat_manager_package: "tomcat"
+systemd_service_path: "/etc/systemd/system"
+
+# RHEL/CentOS specific paths
+tomcat_systemd_service: "tomcat.service"
+

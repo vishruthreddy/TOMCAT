@@ -1,0 +1,61 @@
+---
+# Service Management Playbook
+# Provides start, stop, restart, and status operations for Tomcat
+
+- name: Manage Tomcat Service
+  hosts: tomcat_servers
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    service_action: "{{ service_action | default('status') }}"
+  
+  tasks:
+    - name: Display current service status
+      systemd:
+        name: "{{ tomcat_systemd_service }}"
+      register: service_status
+      when: ansible_os_family != 'Windows'
+    
+    - name: Start Tomcat service
+      systemd:
+        name: "{{ tomcat_systemd_service }}"
+        state: started
+        enabled: yes
+      when: 
+        - ansible_os_family != 'Windows'
+        - service_action == 'start'
+    
+    - name: Stop Tomcat service
+      systemd:
+        name: "{{ tomcat_systemd_service }}"
+        state: stopped
+      when: 
+        - ansible_os_family != 'Windows'
+        - service_action == 'stop'
+    
+    - name: Restart Tomcat service
+      systemd:
+        name: "{{ tomcat_systemd_service }}"
+        state: restarted
+      when: 
+        - ansible_os_family != 'Windows'
+        - service_action == 'restart'
+    
+    - name: Reload Tomcat service
+      systemd:
+        name: "{{ tomcat_systemd_service }}"
+        state: reloaded
+      when: 
+        - ansible_os_family != 'Windows'
+        - service_action == 'reload'
+    
+    - name: Display service information
+      debug:
+        msg:
+          - "Service: {{ tomcat_systemd_service }}"
+          - "Status: {{ service_status.status.ActiveState | default('N/A') }}"
+          - "Enabled: {{ service_status.status.UnitFileState | default('N/A') }}"
+          - "Main PID: {{ service_status.status.MainPID | default('N/A') }}"
+      when: ansible_os_family != 'Windows'
+

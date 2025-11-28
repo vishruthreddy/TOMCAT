@@ -1,0 +1,95 @@
+---
+# Tomcat Installation Role
+# Handles installation across different Linux distributions
+
+- name: Install Java (RedHat/CentOS)
+  package:
+    name: "{{ java_package }}"
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: Install Java (Debian/Ubuntu)
+  apt:
+    name: "{{ java_package }}"
+    state: present
+    update_cache: yes
+  when: ansible_os_family == 'Debian'
+
+- name: Verify Java installation
+  command: java -version
+  register: java_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Display Java version
+  debug:
+    var: java_version_check.stderr_lines
+
+- name: Create Tomcat installation directory
+  file:
+    path: "{{ tomcat_install_dir }}"
+    state: directory
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+  when: ansible_os_family != 'Windows'
+
+- name: Check if Tomcat is already installed
+  stat:
+    path: "{{ tomcat_install_dir }}/bin/catalina.sh"
+  register: tomcat_installed
+  when: ansible_os_family != 'Windows'
+
+- name: Download Tomcat (Linux)
+  get_url:
+    url: "{{ tomcat_download_url }}"
+    dest: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    mode: '0644'
+  when:
+    - ansible_os_family != 'Windows'
+    - not tomcat_installed.stat.exists
+
+- name: Extract Tomcat archive (Linux)
+  unarchive:
+    src: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    dest: "/opt"
+    remote_src: yes
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+  when:
+    - ansible_os_family != 'Windows'
+    - not tomcat_installed.stat.exists
+
+- name: Create symlink for Tomcat home
+  file:
+    src: "{{ tomcat_install_dir }}"
+    dest: "{{ tomcat_home }}"
+    state: link
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+  when:
+    - ansible_os_family != 'Windows'
+    - not tomcat_installed.stat.exists
+
+- name: Set ownership of Tomcat directory
+  file:
+    path: "{{ tomcat_install_dir }}"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    recurse: yes
+  when: ansible_os_family != 'Windows'
+
+- name: Clean up downloaded archive
+  file:
+    path: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    state: absent
+  when: ansible_os_family != 'Windows'
+
+- name: Install Tomcat on Windows
+  win_shell: |
+    # Windows installation would go here
+    # This is a placeholder for Windows-specific installation
+    Write-Host "Windows Tomcat installation not implemented in this example"
+  when: ansible_os_family == 'Windows'
+  ignore_errors: yes
+

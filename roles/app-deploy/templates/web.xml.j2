@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
+         http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+    
+    <display-name>{{ app_name }}</display-name>
+    <description>Sample Application deployed via Ansible</description>
+    
+    {% if health_check_enabled %}
+    <servlet>
+        <servlet-name>HealthCheckServlet</servlet-name>
+        <servlet-class>HealthCheckServlet</servlet-class>
+    </servlet>
+    
+    <servlet-mapping>
+        <servlet-name>HealthCheckServlet</servlet-name>
+        <url-pattern>{{ health_check_path }}/*</url-pattern>
+    </servlet-mapping>
+    {% endif %}
+    
+    <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
+</web-app>
+

@@ -1,0 +1,76 @@
+---
+# Permissions Role
+# Sets appropriate folder permissions for read access (all users) and write access (service account)
+
+- name: Set Tomcat directory permissions (read for all, write for service account)
+  file:
+    path: "{{ item }}"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+    recurse: yes
+  loop:
+    - "{{ tomcat_home }}"
+    - "{{ tomcat_install_dir }}"
+  when: ansible_os_family != 'Windows'
+
+- name: Set specific permissions for webapps directory (read for all)
+  file:
+    path: "{{ tomcat_home }}/webapps"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+    recurse: yes
+  when: ansible_os_family != 'Windows'
+
+- name: Set specific permissions for logs directory (write for service account)
+  file:
+    path: "{{ tomcat_log_dir }}"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+    state: directory
+  when: ansible_os_family != 'Windows'
+
+- name: Set specific permissions for work directory (write for service account)
+  file:
+    path: "{{ tomcat_home }}/work"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+    state: directory
+  when: ansible_os_family != 'Windows'
+
+- name: Set specific permissions for temp directory (write for service account)
+  file:
+    path: "{{ tomcat_home }}/temp"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+    state: directory
+  when: ansible_os_family != 'Windows'
+
+- name: Set execute permissions for bin scripts
+  file:
+    path: "{{ tomcat_home }}/bin"
+    mode: '0755'
+    recurse: yes
+  when: ansible_os_family != 'Windows'
+
+- name: Verify permissions are set correctly
+  stat:
+    path: "{{ tomcat_home }}"
+  register: tomcat_home_stat
+  when: ansible_os_family != 'Windows'
+
+- name: Display permission information
+  debug:
+    msg:
+      - "Tomcat Home: {{ tomcat_home }}"
+      - "Owner: {{ tomcat_home_stat.stat.pw_name | default('N/A') }}"
+      - "Group: {{ tomcat_home_stat.stat.gr_name | default('N/A') }}"
+      - "Mode: {{ tomcat_home_stat.stat.mode | default('N/A') }}"
+  when: 
+    - ansible_os_family != 'Windows'
+    - tomcat_home_stat.stat is defined
+

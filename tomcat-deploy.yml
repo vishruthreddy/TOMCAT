@@ -1,0 +1,50 @@
+---
+# Main Ansible Playbook for Tomcat Deployment
+# This playbook handles complete Tomcat installation, configuration, and deployment
+
+- name: Deploy Tomcat with Service Account and Custom Configuration
+  hosts: tomcat_servers
+  become: yes
+  gather_facts: yes
+  
+  pre_tasks:
+    - name: Detect OS Family
+      set_fact:
+        detected_os_family: "{{ ansible_os_family }}"
+      when: ansible_os_family is defined
+
+    - name: Fail if OS is not supported
+      fail:
+        msg: "Unsupported OS family: {{ ansible_os_family }}. Supported: RedHat, Debian, Windows"
+      when: ansible_os_family not in ['RedHat', 'Debian', 'Windows']
+
+  roles:
+    - role: service-account
+      tags: ['service-account', 'setup']
+    
+    - role: tomcat-install
+      tags: ['install', 'tomcat']
+    
+    - role: permissions
+      tags: ['permissions', 'setup']
+    
+    - role: service-config
+      tags: ['config', 'service']
+    
+    - role: app-deploy
+      tags: ['deploy', 'application']
+    
+    - role: validation
+      tags: ['validation', 'test']
+
+  post_tasks:
+    - name: Display deployment summary
+      debug:
+        msg:
+          - "Tomcat deployment completed successfully!"
+          - "Service Account: {{ tomcat_service_account }}"
+          - "Home Directory: {{ tomcat_home }}"
+          - "Port: {{ tomcat_port }}"
+          - "Application URL: http://{{ ansible_default_ipv4.address }}:{{ tomcat_port }}{{ app_context_path }}"
+          - "Health Check: http://{{ ansible_default_ipv4.address }}:{{ tomcat_port }}{{ health_check_path }}"
+

@@ -1,0 +1,123 @@
+---
+# Application Deployment Role
+# Deploys sample/test application to Tomcat
+
+- name: Ensure webapps directory exists
+  file:
+    path: "{{ tomcat_home }}/webapps"
+    state: directory
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+  when: ansible_os_family != 'Windows'
+
+- name: Create sample application directory structure
+  file:
+    path: "{{ tomcat_home }}/webapps/{{ app_name }}"
+    state: directory
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+  when: ansible_os_family != 'Windows'
+
+- name: Create WEB-INF directory
+  file:
+    path: "{{ tomcat_home }}/webapps/{{ app_name }}/WEB-INF"
+    state: directory
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+  when: ansible_os_family != 'Windows'
+
+- name: Create web.xml for sample application
+  template:
+    src: web.xml.j2
+    dest: "{{ tomcat_home }}/webapps/{{ app_name }}/WEB-INF/web.xml"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0644'
+  when: ansible_os_family != 'Windows'
+
+- name: Create index.html for sample application
+  template:
+    src: index.html.j2
+    dest: "{{ tomcat_home }}/webapps/{{ app_name }}/index.html"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0644'
+  when: ansible_os_family != 'Windows'
+
+- name: Create health check servlet
+  template:
+    src: HealthCheckServlet.java.j2
+    dest: "{{ tomcat_home }}/webapps/{{ app_name }}/WEB-INF/classes/HealthCheckServlet.java"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0644'
+  when: 
+    - ansible_os_family != 'Windows'
+    - health_check_enabled | bool
+
+- name: Create classes directory for servlet
+  file:
+    path: "{{ tomcat_home }}/webapps/{{ app_name }}/WEB-INF/classes"
+    state: directory
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+  when: 
+    - ansible_os_family != 'Windows'
+    - health_check_enabled | bool
+
+- name: Compile health check servlet (if Java compiler available)
+  shell: |
+    javac -cp "{{ tomcat_home }}/lib/*" \
+          "{{ tomcat_home }}/webapps/{{ app_name }}/WEB-INF/classes/HealthCheckServlet.java" \
+          -d "{{ tomcat_home }}/webapps/{{ app_name }}/WEB-INF/classes"
+  args:
+    creates: "{{ tomcat_home }}/webapps/{{ app_name }}/WEB-INF/classes/HealthCheckServlet.class"
+  register: servlet_compile
+  changed_when: servlet_compile.rc == 0
+  failed_when: false
+  when: 
+    - ansible_os_family != 'Windows'
+    - health_check_enabled | bool
+
+- name: Create simple health check HTML (fallback if servlet compilation fails)
+  template:
+    src: health.html.j2
+    dest: "{{ tomcat_home }}/webapps/{{ app_name }}{{ health_check_path }}/index.html"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0644'
+  when: 
+    - ansible_os_family != 'Windows'
+    - health_check_enabled | bool
+
+- name: Create health check directory
+  file:
+    path: "{{ tomcat_home }}/webapps/{{ app_name }}{{ health_check_path }}"
+    state: directory
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+  when: 
+    - ansible_os_family != 'Windows'
+    - health_check_enabled | bool
+
+- name: Set ownership of deployed application
+  file:
+    path: "{{ tomcat_home }}/webapps/{{ app_name }}"
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    recurse: yes
+  when: ansible_os_family != 'Windows'
+
+- name: Display deployment information
+  debug:
+    msg:
+      - "Application deployed: {{ app_name }}"
+      - "Context Path: {{ app_context_path }}"
+      - "Application URL: http://{{ ansible_default_ipv4.address }}:{{ tomcat_port }}{{ app_context_path }}"
+      - "Health Check: http://{{ ansible_default_ipv4.address }}:{{ tomcat_port }}{{ app_context_path }}{{ health_check_path }}"
+

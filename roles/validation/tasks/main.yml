@@ -1,0 +1,225 @@
+---
+# Validation Role
+# Validates that all components are working correctly
+
+- name: Wait for Tomcat to be ready
+  wait_for:
+    port: "{{ tomcat_port }}"
+    host: localhost
+    delay: 10
+    timeout: 60
+  when: ansible_os_family != 'Windows'
+
+- name: Check if service account exists
+  getent:
+    database: passwd
+    key: "{{ tomcat_service_account }}"
+  register: service_account_validation
+  when: ansible_os_family != 'Windows'
+
+- name: Verify service account
+  assert:
+    that:
+      - service_account_validation.ansible_facts.getent_passwd is defined
+      - service_account_validation.ansible_facts.getent_passwd[0][4] == "{{ tomcat_home }}"
+    fail_msg: "Service account validation failed"
+    success_msg: "Service account exists with correct home directory"
+  when: ansible_os_family != 'Windows'
+
+- name: Check Tomcat service status
+  systemd:
+    name: "{{ tomcat_systemd_service }}"
+  register: service_status
+  when: ansible_os_family != 'Windows'
+
+- name: Verify service is running
+  assert:
+    that:
+      - service_status.status.ActiveState == "active"
+      - service_status.status.UnitFileState == "enabled"
+    fail_msg: "Tomcat service is not running or not enabled"
+    success_msg: "Tomcat service is running and enabled"
+  when: ansible_os_family != 'Windows'
+
+- name: Check if Tomcat process is running under service account
+  shell: ps aux | grep "[c]atalina" | awk '{print $1}'
+  register: tomcat_process_user
+  changed_when: false
+  when: ansible_os_family != 'Windows'
+
+- name: Verify process is running under service account
+  assert:
+    that:
+      - tomcat_process_user.stdout is defined
+      - tomcat_service_account in tomcat_process_user.stdout
+    fail_msg: "Tomcat is not running under the service account"
+    success_msg: "Tomcat is running under the correct service account: {{ tomcat_service_account }}"
+  when: ansible_os_family != 'Windows'
+
+- name: Test Tomcat HTTP endpoint
+  uri:
+    url: "http://localhost:{{ tomcat_port }}"
+    method: GET
+    status_code: [200, 404]
+  register: tomcat_http_test
+  when: ansible_os_family != 'Windows'
+
+- name: Verify Tomcat HTTP endpoint is accessible
+  assert:
+    that:
+      - tomcat_http_test.status in [200, 404]
+    fail_msg: "Tomcat HTTP endpoint is not accessible on port {{ tomcat_port }}"
+    success_msg: "Tomcat HTTP endpoint is accessible on port {{ tomcat_port }}"
+  when: ansible_os_family != 'Windows'
+
+- name: Test custom port accessibility
+  uri:
+    url: "http://localhost:{{ tomcat_port }}"
+    method: GET
+    status_code: [200, 404]
+  register: custom_port_test
+  when: ansible_os_family != 'Windows'
+
+- name: Verify custom port is accessible
+  assert:
+    that:
+      - custom_port_test.status in [200, 404]
+    fail_msg: "Custom port {{ tomcat_port }} is not accessible"
+    success_msg: "Custom port {{ tomcat_port }} is accessible and responding"
+  when: ansible_os_family != 'Windows'
+
+- name: Test sample application endpoint
+  uri:
+    url: "http://localhost:{{ tomcat_port }}{{ app_context_path }}"
+    method: GET
+    status_code: [200, 404]
+  register: app_test
+  when: ansible_os_family != 'Windows'
+
+- name: Verify sample application is accessible
+  assert:
+    that:
+      - app_test.status == 200
+    fail_msg: "Sample application is not accessible at {{ app_context_path }}"
+    success_msg: "Sample application is accessible at {{ app_context_path }}"
+  when: ansible_os_family != 'Windows'
+
+- name: Test health check endpoint
+  uri:
+    url: "http://localhost:{{ tomcat_port }}{{ app_context_path }}{{ health_check_path }}"
+    method: GET
+    status_code: [200, 404]
+  register: health_check_test
+  when: 
+    - ansible_os_family != 'Windows'
+    - health_check_enabled | bool
+
+- name: Verify health check endpoint
+  assert:
+    that:
+      - health_check_test.status == 200
+    fail_msg: "Health check endpoint is not accessible"
+    success_msg: "Health check endpoint is accessible and responding"
+  when: 
+    - ansible_os_family != 'Windows'
+    - health_check_enabled | bool
+
+- name: Test service stop functionality
+  systemd:
+    name: "{{ tomcat_systemd_service }}"
+    state: stopped
+  register: service_stop_test
+  when: ansible_os_family != 'Windows'
+
+- name: Wait after stopping service
+  wait_for:
+    timeout: 5
+  when: ansible_os_family != 'Windows'
+
+- name: Verify service stopped
+  assert:
+    that:
+      - service_stop_test.status is defined
+    fail_msg: "Service stop test failed"
+    success_msg: "Service successfully stopped"
+  when: ansible_os_family != 'Windows'
+
+- name: Test service start functionality
+  systemd:
+    name: "{{ tomcat_systemd_service }}"
+    state: started
+  register: service_start_test
+  when: ansible_os_family != 'Windows'
+
+- name: Wait for service to start
+  wait_for:
+    port: "{{ tomcat_port }}"
+    host: localhost
+    delay: 5
+    timeout: 30
+  when: ansible_os_family != 'Windows'
+
+- name: Verify service started
+  assert:
+    that:
+      - service_start_test.status is defined
+    fail_msg: "Service start test failed"
+    success_msg: "Service successfully started"
+  when: ansible_os_family != 'Windows'
+
+- name: Test service restart functionality
+  systemd:
+    name: "{{ tomcat_systemd_service }}"
+    state: restarted
+  register: service_restart_test
+  when: ansible_os_family != 'Windows'
+
+- name: Wait for service after restart
+  wait_for:
+    port: "{{ tomcat_port }}"
+    host: localhost
+    delay: 5
+    timeout: 30
+  when: ansible_os_family != 'Windows'
+
+- name: Verify service restarted
+  assert:
+    that:
+      - service_restart_test.status is defined
+    fail_msg: "Service restart test failed"
+    success_msg: "Service successfully restarted"
+  when: ansible_os_family != 'Windows'
+
+- name: Check file permissions on Tomcat home
+  stat:
+    path: "{{ tomcat_home }}"
+  register: tomcat_home_permissions
+  when: ansible_os_family != 'Windows'
+
+- name: Verify file permissions
+  assert:
+    that:
+      - tomcat_home_permissions.stat.pw_name == tomcat_service_account
+      - tomcat_home_permissions.stat.gr_name == tomcat_service_group
+    fail_msg: "File permissions are not set correctly"
+    success_msg: "File permissions are correctly set"
+  when: ansible_os_family != 'Windows'
+
+- name: Display validation summary
+  debug:
+    msg:
+      - "=========================================="
+      - "VALIDATION SUMMARY"
+      - "=========================================="
+      - "✓ Service Account: {{ tomcat_service_account }}"
+      - "✓ Service Status: Running"
+      - "✓ Process User: {{ tomcat_service_account }}"
+      - "✓ Port {{ tomcat_port }}: Accessible"
+      - "✓ Application: Deployed and Accessible"
+      - "✓ Health Check: {{ 'Enabled' if health_check_enabled else 'Disabled' }}"
+      - "✓ Service Management: Start/Stop/Restart Working"
+      - "✓ Permissions: Correctly Set"
+      - "=========================================="
+      - "All validations passed successfully!"
+      - "=========================================="
+

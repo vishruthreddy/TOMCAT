@@ -1,0 +1,13 @@
+---
+# Validation Playbook
+# Standalone validation playbook for testing deployment
+
+- name: Validate Tomcat Deployment
+  hosts: tomcat_servers
+  become: yes
+  gather_facts: yes
+  
+  roles:
+    - role: validation
+      tags: ['validation', 'test']
+

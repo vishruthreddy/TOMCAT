@@ -1,0 +1,72 @@
+---
+# Service Account Setup Role
+# Creates dedicated service account with custom home folder
+
+- name: Check if service account group exists (Linux)
+  getent:
+    database: group
+    key: "{{ tomcat_service_group }}"
+  register: service_group_check
+  failed_when: false
+  changed_when: false
+  when: ansible_os_family != 'Windows'
+
+- name: Create service account group (Linux)
+  group:
+    name: "{{ tomcat_service_group }}"
+    state: present
+    system: yes
+  when: 
+    - ansible_os_family != 'Windows'
+    - service_group_check.ansible_facts.getent_group is not defined
+
+- name: Check if service account exists (Linux)
+  getent:
+    database: passwd
+    key: "{{ tomcat_service_account }}"
+  register: service_account_check
+  failed_when: false
+  changed_when: false
+  when: ansible_os_family != 'Windows'
+
+- name: Create service account with custom home directory (Linux)
+  user:
+    name: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    home: "{{ tomcat_home }}"
+    shell: /bin/bash
+    system: yes
+    create_home: yes
+    comment: "Tomcat Service Account"
+  when:
+    - ansible_os_family != 'Windows'
+    - service_account_check.ansible_facts.getent_passwd is not defined
+
+- name: Create home directory if it doesn't exist (Linux)
+  file:
+    path: "{{ tomcat_home }}"
+    state: directory
+    owner: "{{ tomcat_service_account }}"
+    group: "{{ tomcat_service_group }}"
+    mode: '0755'
+  when: ansible_os_family != 'Windows'
+
+- name: Create service account on Windows
+  win_user:
+    name: "{{ tomcat_service_account }}"
+    password: "{{ tomcat_service_password | default('ChangeMe123!') }}"
+    password_never_expires: yes
+    state: present
+    groups:
+      - Users
+  when: ansible_os_family == 'Windows'
+  vars:
+    ansible_become_method: runas
+
+- name: Display service account information
+  debug:
+    msg:
+      - "Service Account: {{ tomcat_service_account }}"
+      - "Home Directory: {{ tomcat_home }}"
+      - "Group: {{ tomcat_service_group }}"
+
